@@ -1,6 +1,11 @@
-from chessAI import ChessAI, board_to_feature_vector, SimpleMLP
-import chess, os, random
+# trunk-ignore-all(git-diff-check/error)
 import argparse
+import os
+import random
+
+import chess
+
+from chessAI import ChessAI
 
 # --- Exemplo rápido ---
 if __name__ == "__main__":
@@ -15,6 +20,7 @@ if __name__ == "__main__":
     ai = ChessAI(depth=args.depth, sequence=moves)
     ai.load_model("prev_model")
     players = ["AI", "Human"]
+    # trunk-ignore(bandit/B311)
     white = random.choice(players)
     black = "AI" if white == "Human" else "Human"
 
@@ -24,20 +30,33 @@ if __name__ == "__main__":
             black == "AI" and board.turn == chess.BLACK
         ):
             move = ai.choose_move(board)
-            move_san = board.san(move)
-            os.system("cls")
-            print("Escolhido:", move_san)
-            moves.append(move_san)
-            board.push(move)
-            print(board)
+            if move:
+                move_san = board.san(move)
+                # trunk-ignore(bandit/B605)
+                # trunk-ignore(bandit/B607)
+                os.system("cls")
+                print(f"Brancas: {white} | Pretas: {black}")
+                if white == "AI":
+                    print(f"AI (Brancas) depth: {ai.depth}")
+                if black == "AI":
+                    print(f"AI (Pretas) depth: {ai.depth}")
+                print("Escolhido:", move_san)
+                moves.append(move_san)
+                board.push(move)
+                print(board)
+            else:
+                print("AI não encontrou um movimento válido.")
+                break
         else:
             while True:
                 move = input("Seu lance (Notação SAN ex: e4, Nf3, Qxd2): ")
                 try:
                     move_converted = board.parse_san(move)
-                except:
+                    break
+                except Exception:
                     print("Movimento inválido, tente de novo.")
-                break
+            # trunk-ignore(bandit/B605)
+            # trunk-ignore(bandit/B607)
             os.system("cls")
             print("Escolhido:", move)
             try:
@@ -47,8 +66,35 @@ if __name__ == "__main__":
             moves.append(move)
             print(board)
     print("Jogo terminado:", board.result())
-    with open("jogo.txt", "w") as f:
-        f.write(" ".join(moves))
+    # Determine player names and AI depths for PGN
+    if white == "AI":
+        ai_white_str = "AI"
+        ai_white_depth = ai.depth
+    else:
+        ai_white_str = "Human"
+        ai_white_depth = "-"
+    if black == "AI":
+        ai_black_str = "AI"
+        ai_black_depth = ai.depth
+    else:
+        ai_black_str = "Human"
+        ai_black_depth = "-"
+
+    with open("jogo.pgn", "w") as f:
+        f.write('[Event "AI vs Human"]\n')
+        f.write(f'[White "{ai_white_str}, depth: {ai_white_depth}"]\n')
+        f.write(f'[Black "{ai_black_str}, depth: {ai_black_depth}"]\n')
+        f.write(f'[Result "{board.result()}"]\n')
         f.write("\n")
+
+        # Escreve os lances no formato PGN (com contagem de jogadas)
+        for i in range(0, len(moves), 2):
+            move_number = i // 2 + 1
+            if i + 1 < len(moves):
+                f.write(f"{move_number}. {moves[i]} {moves[i+1]} ")
+            else:
+                f.write(f"{move_number}. {moves[i]} ")
+
         f.write(board.result())
+        f.write("\n")
     print("Movimentos salvos em jogo.txt")

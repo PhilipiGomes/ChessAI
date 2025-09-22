@@ -1,8 +1,13 @@
+# trunk-ignore-all(git-diff-check/error)
+import json
+import os
+import random
+from typing import Dict, List, Optional
+
 import chess
 import numpy as np
-import random
-import os
-from typing import List, Tuple, Optional, Dict
+from tqdm import tqdm
+
 from openings import chess_openings
 
 # --- Config ---
@@ -29,6 +34,7 @@ _zobrist_ep = {}
 
 def init_zobrist(seed: Optional[int] = 0):
     global _zobrist_piece, _zobrist_side, _zobrist_castling, _zobrist_ep
+    # trunk-ignore(bandit/B311)
     rng = random.Random(seed)
     _zobrist_piece = {}
     for pidx in range(6):
@@ -90,11 +96,6 @@ def board_to_feature_vector(board: chess.Board) -> np.ndarray:
 
 
 # --- Simple MLP (corrigido, vetorizado, save/load) ---
-import json
-import os
-from tqdm import tqdm
-
-
 class SimpleMLP:
     """
     Rede MLP vetorizada. hidden_sizes é uma lista com qualquer número de camadas.
@@ -102,8 +103,8 @@ class SimpleMLP:
 
     def __init__(
         self,
+        hidden_sizes: List[int],
         input_size=INPUT_SIZE,
-        hidden_sizes: List[int] = [128, 64],
         seed: Optional[int] = 42,
     ):
         rng = np.random.RandomState(seed)
@@ -202,14 +203,14 @@ class SimpleMLP:
 
                 # propagate backwards for hidden layers
                 delta_prev = delta  # (B, out_next)
-                for l in range(self.n_layers - 2, -1, -1):
-                    z_l = zs[l]  # (B, out_l)
+                for j in range(self.n_layers - 2, -1, -1):
+                    z_l = zs[j]  # (B, out_l)
                     deriv = 1.0 - np.tanh(z_l) ** 2  # (B, out_l)
-                    # delta_l = (delta_prev @ W_{l+1}) * deriv
-                    delta_l = delta_prev.dot(self.W[l + 1]) * deriv  # (B, out_l)
-                    a_prev = activations[l]  # (B, in_l)
-                    dW[l] = delta_l.T.dot(a_prev).astype(np.float32)  # (out_l, in_l)
-                    db[l] = np.sum(delta_l, axis=0).astype(np.float32)  # (out_l,)
+                    # delta_l = (delta_prev @ W_{j+1}) * deriv
+                    delta_l = delta_prev.dot(self.W[j + 1]) * deriv  # (B, out_l)
+                    a_prev = activations[j]  # (B, in_l)
+                    dW[j] = delta_l.T.dot(a_prev).astype(np.float32)  # (out_l, in_l)
+                    db[j] = np.sum(delta_l, axis=0).astype(np.float32)  # (out_l,)
                     delta_prev = delta_l
 
                 # update params
@@ -246,7 +247,9 @@ class SimpleMLP:
         b_path = prefix + "/chess_mlp_b.npy"
         meta_path = prefix + "/chess_mlp_meta.json"
         if not os.path.exists(W_path) or not os.path.exists(b_path):
-            raise FileNotFoundError(f"Arquivos do modelo não encontrados: {W_path} or {b_path}")
+            raise FileNotFoundError(
+                f"Arquivos do modelo não encontrados: {W_path} or {b_path}"
+            )
         W_obj = np.load(W_path, allow_pickle=True)
         b_obj = np.load(b_path, allow_pickle=True)
         self.W = [np.array(w, dtype=np.float32) for w in list(W_obj)]
@@ -272,12 +275,12 @@ UPPERBOUND = 2
 class ChessAI:
     def __init__(
         self,
+        sequence: List[str],
         model: Optional[SimpleMLP] = None,
         depth: int = 2,
         zobrist_seed: Optional[int] = 0,
-        sequence: List[str] = [],
     ):
-        self.model = model if model is not None else SimpleMLP()
+        self.model = model if model is not None else SimpleMLP([128, 64])
         self.depth = max(1, int(depth))
         init_zobrist(seed=zobrist_seed)
         self.tt = {}  # zobrist_key -> (depth, flag, value, best_move_uci)
@@ -331,11 +334,11 @@ class ChessAI:
         def move_ordering(m: chess.Move) -> int:
             score = 0
             if board.is_capture(m):
-                score += 1
+                score += 100
             if board.gives_check(m):
-                score += 2
+                score += 200
             if m.promotion is not None:
-                score += 1.5
+                score += 150
             return score
 
         moves_sorted = (
@@ -401,6 +404,7 @@ class ChessAI:
         if self.sequence or board.fen() == chess.STARTING_FEN:
             filtered = self.filter_openings(chess_openings, self.sequence)
             if filtered:
+                # trunk-ignore(bandit/B311)
                 opening = random.choice(list(filtered.items()))
                 san_move = opening[1][len(self.sequence)]
                 return chess.Move.from_uci(board.parse_san(san_move).uci())
@@ -416,11 +420,11 @@ class ChessAI:
         def move_ordering(m: chess.Move) -> int:
             score = 0
             if board.is_capture(m):
-                score += 1
+                score += 100
             if board.gives_check(m):
-                score += 2
+                score += 200
             if m.promotion is not None:
-                score += 1.5
+                score += 150
             return score
 
         moves.sort(key=move_ordering, reverse=True)

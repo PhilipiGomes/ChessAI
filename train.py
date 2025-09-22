@@ -1,12 +1,14 @@
+# trunk-ignore-all(git-diff-check/error)
 import argparse
 import os
-from typing import List, Optional, Tuple
 import random
+from typing import List, Optional, Tuple
+
+import chess
 import numpy as np
 import pandas as pd
-import chess
-from chessAI import board_to_feature_vector, SimpleMLP, INPUT_SIZE, MATE_SCORE
 
+from chessAI import INPUT_SIZE, MATE_SCORE, SimpleMLP, board_to_feature_vector
 
 # --- helpers para ler CSV com avaliações ---
 
@@ -204,9 +206,10 @@ def evolve_architectures(
     lr: float,
     batch_size: int,
     seed: int,
-) -> List[int]:
+) -> List[int] | None:
     from tqdm import tqdm
 
+    # trunk-ignore(bandit/B311)
     rng = random.Random(seed)
     # initial population
     population = [
@@ -255,7 +258,8 @@ def evolve_architectures(
             best_loss=f"{best_score:.6f}", best_arch=str(best_arch)
         )
     print(f"[evolve] Melhor arquitetura: {best_arch}, perda geral: {best_score:.6f}")
-    return best_arch
+    if best_arch is not None:
+        return best_arch
 
 
 # --- funções de salvar/carregar (mantive as suas) ---
@@ -393,7 +397,8 @@ def main(argv=None):
 
     save_model_np(model, args.model_out)
     if args.plot_loss:
-        plot(losses, "training_loss.png")
+        if losses is not None:
+            plot(losses, "training_loss.png")
 
     print("Treino concluído.")
 

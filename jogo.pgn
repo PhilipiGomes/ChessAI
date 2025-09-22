@@ -1,6 +1,6 @@
 [Event "AI vs AI"]
-[White "AI 1, depth: 4"]
-[Black "AI 2, depth: 1"]
-[Result "1-0"]
+[White "AI 2, depth: 2"]
+[Black "AI 1, depth: 2"]
+[Result "1/2-1/2"]
 
-1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3 a6 7. Be2 Qg3 8. Nxe6 Qh3 9. Nb5 g6 10. g4 Ke7 11. Qc1 Nb4 12. Bh6 d6 13. Bc4 Ke8 14. Nbd4 Nd5 15. Kd1 Ke7 16. f4 g5 17. Kd2 a5 18. b4 Ke8 19. b5 Be7 20. Bb3 Qd3+ 21. Ke1 Bf6 22. Qb2 Nc7 23. fxg5 Ra6 24. Rf1 Qd1+ 25. Kf2 Bg7 26. Qa3 Qd3 27. Rfb1 Bf8 28. Nf5 Qh3 29. g6 Qg3+ 30. Kf1 Qe1+ 31. Kg2 Qc1 32. Kf3 f6 33. g5 Qe1 34. Kg4 Qd1+ 35. Kf4 Be7 36. Qb2 a4 37. Bxa4 Bd7 38. Nfg7# 1-0
+1. e4 c5 2. Nf3 Nc6 3. Bb5 g6 4. O-O Bg7 5. c3 e5 6. d4 Qf6 7. Ng5 Kd8 8. Bxc6 Rb8 9. g3 b6 10. Bd5 Qxf2+ 11. Kh1 Qxf1+ 12. Qxf1 exd4 13. Qc4 f6 14. Na3 h5 15. b4 d3 16. Bf4 Rh7 17. g4 a6 18. Nxh7 b5 19. Nxf6 Nxf6 20. Rb1 Rb6 21. Qxb5 Bb7 22. Bh6 Ba8 23. Rc1 cxb4 24. gxh5 Ke8 25. Nc4 a5 26. Nxb6 a4 27. Nxa4 Ng4 28. hxg6 Nf2+ 29. Kg1 Be5 30. Bxa8 Kd8 31. cxb4 Bc7 32. Kf1 Ba5 33. bxa5 Ke8 34. Rc3 Kd8 35. Rc6 d6 36. a3 d2 37. Rc1 d1=Q+ 38. Kg2 Qg4+ 39. Kf1 Qg1+ 40. Ke2 Qd1+ 41. Ke3 Qxc1+ 42. Ke2 Qc4+ 43. Kd2 Qc1+ 44. Ke2 Qc4+ 45. Kd2 Qc1+ 46. Ke2 Qc4+ 47. Kd2 Qc1+ 48. Ke2 Qc4+ 49. Kd2 Qxe4 50. Qc5 Qd3+ 51. Kc1 Qc4+ 52. Kd2 Qd3+ 53. Kc1 Qc4+ 54. Kd2 Qd3+ 55. Kc1 Qc4+ 56. Kd2 Qd3+ 57. Kc1 Qc4+ 58. Kd2 Qf1 59. Kc2 Qb1+ 60. Kd2 Qf1 61. Kc2 Qb1+ 62. Kd2 Qf1 63. Kc2 Qb1+ 64. Kd2 Qf1 65. Kc2 Qb1+ 66. Kd2 Qe4 67. Bf4 Qd3+ 68. Kc1 Qc4+ 69. Kb2 Nd3+ 70. Ka1 Qc3+ 71. Nb2 Qxa3+ 72. Kb1 Qc3 73. Qb5 Qxb2+ 74. Qxb2 Kc8 75. Qb5 Nf2 76. Bh6 Kd8 77. Kb2 d5 78. h3 Nd3+ 79. Ka2 Kc7 80. h4 Nf2 81. Ka1 Nd3 82. Ka2 Nf2 83. Ka1 Nd3 84. Ka2 Nf2 85. Ka1 Nd3 86. Ka2 Nf2 87. Ka1 Nd3 88. Ka2 1/2-1/2

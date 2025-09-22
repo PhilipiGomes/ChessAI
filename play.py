@@ -1,5 +1,11 @@
+# trunk-ignore-all(git-diff-check/error)
+import argparse
+import os
+import random
+
+import chess
+
 from chessAI import ChessAI
-import chess, os, random, argparse
 
 # --- Exemplo rápido ---
 if __name__ == "__main__":
@@ -16,11 +22,20 @@ if __name__ == "__main__":
     if len(os.listdir("model")) == 0 and len(os.listdir("prev_model")) == 0:
         raise ValueError("No models found. Please train a model first.")
     ai1 = ChessAI(depth=args.depth_ai_1, sequence=moves)
-    ai1.load_model("model") if len(os.listdir("model")) > 0 else ai1.load_model("prev_model")
+    (
+        ai1.load_model("model")
+        if len(os.listdir("model")) > 0
+        else ai1.load_model("prev_model")
+    )
     ai2 = ChessAI(depth=args.depth_ai_2, sequence=moves)
-    ai2.load_model("prev_model") if len(os.listdir("prev_model")) > 0 else ai2.load_model("model")
+    (
+        ai2.load_model("prev_model")
+        if len(os.listdir("prev_model")) > 0
+        else ai2.load_model("model")
+    )
     # exemplo: avaliar posição inicial; como é branco a mover, último elemento será +1.0
     print(board)
+    # trunk-ignore(bandit/B311)
     ai_white = random.choice([ai1, ai2])
     ai_black = ai2 if ai_white == ai1 else ai1
     ai_white_str = "AI 1" if ai_white == ai1 else "AI 2"
@@ -30,16 +45,25 @@ if __name__ == "__main__":
             move = ai_white.choose_move(board)
         else:
             move = ai_black.choose_move(board)
-        move_san = board.san(move)
-        os.system("cls")
-        print(f"Brancas: {ai_white_str}, depth: {ai_white.depth} | Pretas: {ai_black_str}, depth: {ai_black.depth}")
-        print("Escolhido:", move_san)
-        moves.append(move_san)
-        board.push(move)
-        print(board)
+        if move:
+                move_san = board.san(move)
+                # trunk-ignore(bandit/B605)
+                # trunk-ignore(bandit/B607)
+                os.system("cls")
+                print(
+                f"Brancas: {ai_white_str}, depth: {ai_white.depth} | Pretas: {ai_black_str}, depth: {ai_black.depth}"
+                )
+                print("Escolhido:", move_san)
+                moves.append(move_san)
+                board.push(move)
+                print(board)
+        else:
+            print("AI não encontrou um movimento válido.")
+            break
     print("Jogo terminado:", board.result())
     with open("jogo.pgn", "w") as f:
-        f.write(f'[Event "AI vs AI"]\n')
+        f.write('[Event "AI vs AI"]')
+        f.write("\n")
         f.write(f'[White "{ai_white_str}, depth: {ai_white.depth}"]\n')
         f.write(f'[Black "{ai_black_str}, depth: {ai_black.depth}"]\n')
         f.write(f'[Result "{board.result()}"]\n')

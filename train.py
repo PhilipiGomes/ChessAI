@@ -96,7 +96,7 @@ def load_positions_from_csv(
             f"Não foi possível coletar {max_rows} posições válidas sem mate. Coletadas: {len(positions)} (skipped {skipped})."
         )
 
-    print(f"Loaded {len(positions)} positions (skipped {skipped}) from {path}")
+    print(f"Carregou {len(positions)} posições (pulou {skipped}) de {path}")
     return positions
 
 
@@ -205,6 +205,8 @@ def evolve_architectures(
     batch_size: int,
     seed: int,
 ) -> List[int]:
+    from tqdm import tqdm
+
     rng = random.Random(seed)
     # initial population
     population = [
@@ -213,8 +215,8 @@ def evolve_architectures(
     ]
     best_arch = None
     best_score = float("inf")
-
-    for gen in range(generations):
+    progress_bar = tqdm(range(generations), desc="Evoluindo arquitetura")
+    for gen in progress_bar:
         scores = []
         for i, arch in enumerate(population):
             score = evaluate_architecture(
@@ -229,7 +231,7 @@ def evolve_architectures(
             scores.append((score, arch))
         scores.sort(key=lambda s: s[0])
         # keep elite
-        elite_count = max(1, pop // 5)
+        elite_count = 3 if pop > 10 else 1
         elites = [arch for (_, arch) in scores[:elite_count]]
         if scores[0][0] < best_score:
             best_score = scores[0][0]
@@ -249,10 +251,10 @@ def evolve_architectures(
             )
             next_pop.append(child)
         population = next_pop
-        print(
-            f"[evolve] gen {gen+1}/{generations} best_loss={scores[0][0]:.6f} best_arch={scores[0][1]}"
+        progress_bar.set_postfix(
+            best_loss=f"{best_score:.6f}", best_arch=str(best_arch)
         )
-    print(f"[evolve] best overall loss {best_score:.6f} architecture {best_arch}")
+    print(f"[evolve] Melhor arquitetura: {best_arch}, perda geral: {best_score:.6f}")
     return best_arch
 
 
@@ -283,6 +285,19 @@ def load_model_np(model: SimpleMLP, prefix: str):
     model.b = [bb.astype(np.float32) for bb in list(b)]
 
 
+def plot(losses: dict, filename: str):
+    import matplotlib.pyplot as plt
+
+    plt.figure()
+    plt.plot(list(losses.keys()), list(losses.values()))
+    plt.title("Training Loss over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
+    plt.savefig(filename)
+    plt.close()
+
+
 # --- main CLI ---
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -311,9 +326,25 @@ def main(argv=None):
     parser.add_argument("--min-neurons", type=int, default=16)
     parser.add_argument("--max-neurons", type=int, default=512)
     parser.add_argument("--mutation-rate", type=float, default=0.25)
+    parser.add_argument(
+        "--plot-loss",
+        action="store_true",
+        help="Plota e salva o gráfico da evolução de perdas",
+    )
     args = parser.parse_args(argv)
-    
+
     # move the current model to the folder 'prev_model', if theres a model saved in model
+    if os.path.exists(args.model_out) and len(os.listdir(args.model_out)) > 0:
+        if not os.path.exists("prev_model"):
+            os.makedirs("prev_model")
+        for f in os.listdir("prev_model"):
+            os.remove(os.path.join("prev_model", f))
+        for f in os.listdir(args.model_out):
+            src = os.path.join(args.model_out, f)
+            dst = os.path.join("prev_model", f)
+            if os.path.isfile(src):
+                os.replace(src, dst)
+        print(f"Modelo existente em {args.model_out}/ foi movido para prev_model/")
 
     print("Carregando posições do CSV...")
     positions = load_positions_from_csv(args.data, max_rows=args.max_rows)
@@ -347,18 +378,23 @@ def main(argv=None):
     print("Arquitetura escolhida (hidden sizes):", chosen_hidden)
     model = SimpleMLP(input_size=INPUT_SIZE, hidden_sizes=chosen_hidden, seed=args.seed)
     print(
-        "Iniciando treino final: epochs",
-        args.epochs,
-        "batch",
-        args.batch_size,
-        "lr",
-        args.lr,
+        f"Iniciando treino final: epochs: {args.epochs}, batch size: {args.batch_size}, lr: {args.lr}"
     )
-    model.train_sgd(
-        X, y, epochs=args.epochs, lr=args.lr, batch_size=args.batch_size, verbose=True
+
+    losses = model.train_sgd(
+        X,
+        y,
+        epochs=args.epochs,
+        lr=args.lr,
+        batch_size=args.batch_size,
+        verbose=True,
+        plot=args.plot_loss,
     )
 
     save_model_np(model, args.model_out)
+    if args.plot_loss:
+        plot(losses, "training_loss.png")
+
     print("Treino concluído.")
 
 

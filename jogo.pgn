@@ -1,0 +1,6 @@
+[Event "AI vs AI"]
+[White "AI 1, depth: 4"]
+[Black "AI 2, depth: 1"]
+[Result "1-0"]
+
+1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3 a6 7. Be2 Qg3 8. Nxe6 Qh3 9. Nb5 g6 10. g4 Ke7 11. Qc1 Nb4 12. Bh6 d6 13. Bc4 Ke8 14. Nbd4 Nd5 15. Kd1 Ke7 16. f4 g5 17. Kd2 a5 18. b4 Ke8 19. b5 Be7 20. Bb3 Qd3+ 21. Ke1 Bf6 22. Qb2 Nc7 23. fxg5 Ra6 24. Rf1 Qd1+ 25. Kf2 Bg7 26. Qa3 Qd3 27. Rfb1 Bf8 28. Nf5 Qh3 29. g6 Qg3+ 30. Kf1 Qe1+ 31. Kg2 Qc1 32. Kf3 f6 33. g5 Qe1 34. Kg4 Qd1+ 35. Kf4 Be7 36. Qb2 a4 37. Bxa4 Bd7 38. Nfg7# 1-0

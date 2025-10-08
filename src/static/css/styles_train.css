@@ -1,0 +1,13 @@
+/* Styles specific for training page */
+body { font-family: Arial, Helvetica, sans-serif; background:#fafafa; }
+.box { max-width:900px; padding:20px; margin:20px auto; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+.row label { display:block; margin-bottom:8px; }
+.advanced { margin-top:12px; padding-top:12px; border-top:1px dashed #e6e6e6 }
+#loss-graph { background: linear-gradient(180deg,#fff,#fbfbff); }
+#start-train { background:#1a73e8;color:#fff;border:none;padding:8px 12px;border-radius:6px }
+#stop-train { background:#e65c00;color:#fff;border:none;padding:8px 12px;border-radius:6px }
+.small-muted { color:#666; font-size:13px }
+/* Modal */
+.modal { position:fixed; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; }
+.modal-content { background:#fff; padding:18px; border-radius:10px; min-width:320px; box-shadow:0 6px 20px rgba(0,0,0,0.12); }
+.modal-content h3 { margin-top:0 }

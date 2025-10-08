@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Train AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_train.css') }}" />
+    <style>
+      /* minimal fallback */
+      .box{max-width:700px;padding:20px;border:1px solid #ccc;border-radius:8px}
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>Train AI</h1>
+      <div class="row">
+        <h3>Basic</h3>
+        <label>epochs: <input id="epochs" type="number" value="20" min="1"/></label>
+        <label>lr: <input id="lr" type="number" step="0.0001" value="0.01"/></label>
+        <label>data feed size: <input id="data_feed_size" type="number" value="1000" min="10"/></label>
+      </div>
+      <div class="advanced">
+        <h3>Advanced</h3>
+        <label>batch size: <input id="batch_size" type="number" value="32"/></label>
+        <label>hidden_layers (comma separated): <input id="hidden_layers" value="128,64"/></label>
+        <label>validation_split (0-1): <input id="val_split" type="number" step="0.01" value="0.2"/></label>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button id="start-train" type="button">Start Training</button>
+        <button id="stop-train" type="button" disabled>Stop</button>
+        <div class="small-muted" id="train-status">idle</div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:20px;align-items:flex-start;">
+        <div style="min-width:260px">
+          <div><strong>Epoch:</strong> <span id="t-epoch">0</span> / <span id="t-epochs">0</span></div>
+          <div><strong>Loss:</strong> <span id="t-loss">-</span></div>
+          <div><strong>Best Loss:</strong> <span id="t-best">-</span></div>
+        </div>
+        <canvas id="loss-graph" width="560" height="200" style="border:1px solid #ddd;border-radius:6px"></canvas>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button id="save-model" type="button">Save Model as latest</button>
+        <a href="/models" style="margin-left:8px">Manage models</a>
+      </div>
+    </div>
+    <!-- Modal -->
+    <div id="finished-modal" class="modal" style="display:none">
+      <div class="modal-content">
+        <h3>Training finished</h3>
+        <div id="modal-body">Completed</div>
+        <div style="margin-top:12px">
+          <button id="modal-save">Save model</button>
+          <button id="modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let pollId = null;
+      const startBtn = document.getElementById('start-train');
+      const stopBtn = document.getElementById('stop-train');
+      const statusEl = document.getElementById('train-status');
+      const epochEl = document.getElementById('t-epoch');
+      const epochsEl = document.getElementById('t-epochs');
+      const lossEl = document.getElementById('t-loss');
+      const bestEl = document.getElementById('t-best');
+      const canvas = document.getElementById('loss-graph');
+      const ctx = canvas.getContext('2d');
+      let history = [];
+  const saveBtn = document.getElementById('save-model');
+  const modalSaveBtn = document.getElementById('modal-save');
+
+      function drawGraph(hist) {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        if (!hist || hist.length===0) return;
+        const padding = 30;
+        const w = canvas.width - padding*2;
+        const h = canvas.height - padding*2;
+        const maxLoss = Math.max(...hist.map(x=>x.loss));
+        const minLoss = Math.min(...hist.map(x=>x.loss));
+        const range = Math.max(0.0001, maxLoss - minLoss);
+        ctx.strokeStyle = '#0077cc'; ctx.lineWidth=2; ctx.beginPath();
+        hist.forEach((pt,i)=>{
+          const x = padding + (i/(hist.length-1||1))*w;
+          const y = padding + h - ((pt.loss - minLoss)/range)*h;
+          if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+        // best loss point
+        const best = hist[hist.length-1].best_loss;
+        const last = hist[hist.length-1];
+        const bx = padding + ((hist.length-1)/(hist.length-1||1))*w;
+        const by = padding + h - ((last.best_loss - minLoss)/range)*h;
+        ctx.fillStyle = '#e65c00'; ctx.beginPath(); ctx.arc(bx, by, 4, 0, Math.PI*2); ctx.fill();
+      }
+
+      async function pollStatus(){
+        try {
+          const r = await fetch('/api/train_status');
+          const d = await r.json();
+          const wasRunning = statusEl.textContent === 'running';
+          statusEl.textContent = d.running ? 'running' : 'idle';
+          epochEl.textContent = d.epoch;
+          epochsEl.textContent = d.epochs;
+          lossEl.textContent = d.loss ? d.loss.toFixed(4) : '-';
+          bestEl.textContent = d.best_loss ? d.best_loss.toFixed(4) : '-';
+          const val = d.validation_loss || d.val_loss || null;
+          document.getElementById('t-val').textContent = val ? parseFloat(val).toFixed(4) : '-';
+          history = d.history || history;
+          drawGraph(history);
+          if (!d.running) { stopBtn.disabled = true; startBtn.disabled = false; }
+          // disable/enable save buttons while running
+          if (d.running) { saveBtn.disabled = true; modalSaveBtn.disabled = true; } else { saveBtn.disabled = false; modalSaveBtn.disabled = false; }
+          // if run transitioned from running->not running, show popup
+          if (wasRunning && !d.running) {
+            showFinishedPopup(d);
+          }
+        } catch(e) { console.error(e); }
+      }
+
+      startBtn.addEventListener('click', async ()=>{
+        const epochs = parseInt(document.getElementById('epochs').value || '20',10);
+        const lr = parseFloat(document.getElementById('lr').value || '0.01');
+        const data_feed_size = parseInt(document.getElementById('data_feed_size').value || '1000',10);
+        startBtn.disabled = true; stopBtn.disabled = false; statusEl.textContent='starting';
+        await fetch('/api/train_start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({epochs, lr, data_feed_size})});
+        pollId = setInterval(pollStatus, 400);
+      });
+
+      stopBtn.addEventListener('click', async ()=>{
+        stopBtn.disabled = true; await fetch('/api/train_stop', {method:'POST'}); if (pollId) clearInterval(pollId); pollId=null; await pollStatus();
+      });
+
+      document.getElementById('save-model').addEventListener('click', async ()=>{
+        const resp = await fetch('/api/train_save_model', {method:'POST'});
+        const d = await resp.json();
+        if (resp.ok) alert('Model saved to: ' + d.path);
+        else alert('Save failed: ' + (d.error || 'unknown'));
+      });
+
+      function showFinishedPopup(d) {
+        const modal = document.getElementById('finished-modal');
+        const body = document.getElementById('modal-body');
+        body.textContent = `Epochs: ${d.epoch}/${d.epochs}, best loss: ${d.best_loss ? d.best_loss.toFixed(6) : '-'}, validation: ${d.validation_loss? parseFloat(d.validation_loss).toFixed(6):'-'}`;
+        modal.style.display = 'block';
+      }
+
+      document.getElementById('modal-close').addEventListener('click', ()=>{ document.getElementById('finished-modal').style.display='none'; });
+      document.getElementById('modal-save').addEventListener('click', async ()=>{ const r = await fetch('/api/train_save_model', {method:'POST'}); const d = await r.json(); if (r.ok) alert('Saved to: '+d.path); else alert('Save failed: '+(d.error||'unknown')); });
+
+      // show current status on load
+      pollStatus();
+    </script>
+  </body>
+  </html>

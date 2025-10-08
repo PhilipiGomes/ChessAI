@@ -1,0 +1,1 @@
+{"epoch": 960, "loss": 0.014835289679467678, "params": {"epochs": 1000, "lr": 0.001, "data_feed_size": 2000, "val_split": 0.0, "batch_size": 32, "hidden_layers": [128, 64], "csv_path": "src/data/random_evals.csv"}}

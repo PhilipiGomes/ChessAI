@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Models</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_train.css') }}" />
+  </head>
+  <body>
+    <div class="box">
+      <h1>Saved Models</h1>
+      <div id="models-list"></div>
+      <p style="margin-top:12px"><a href="/train">Back to train</a></p>
+    </div>
+    <script>
+      async function loadModels(){
+        const r = await fetch('/api/models');
+        const d = await r.json();
+        const list = document.getElementById('models-list');
+        list.innerHTML = '';
+        if (!d.models || d.models.length===0) { list.innerHTML = '<div class="small-muted">No models saved yet.</div>'; return; }
+        d.models.forEach(m=>{
+          const el = document.createElement('div');
+          el.style.border='1px solid #eee'; el.style.padding='8px'; el.style.marginBottom='8px'; el.style.borderRadius='6px';
+          const nameEl = document.createElement('div'); nameEl.innerHTML = `<strong>${m.name}</strong>`;
+          el.appendChild(nameEl);
+          const metaEl = document.createElement('pre'); metaEl.style.background='#fafafa'; metaEl.style.padding='8px'; metaEl.style.borderRadius='6px'; metaEl.style.overflow='auto'; metaEl.textContent = JSON.stringify(m.meta||{}, null, 2);
+          el.appendChild(metaEl);
+          if (m.history && Array.isArray(m.history)){
+            const cvs = document.createElement('canvas'); cvs.width=360; cvs.height=80; cvs.style.display='block'; cvs.style.marginTop='8px'; el.appendChild(cvs);
+            drawHistoryOnCanvas(cvs, m.history);
+          } else {
+            const nom = document.createElement('div'); nom.className='small-muted'; nom.textContent='no history'; el.appendChild(nom);
+          }
+          const btn = document.createElement('button'); btn.textContent='Load as latest'; btn.style.marginTop='8px';
+          btn.addEventListener('click', async ()=>{
+            // disable while training
+            const status = await (await fetch('/api/train_status')).json();
+            if (status.running){ alert('Training is running — please stop it before loading models.'); return; }
+            const r2 = await fetch('/api/models/load', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: m.name})});
+            const d2 = await r2.json();
+            if (r2.ok) alert('Loaded model: '+m.name);
+            else alert('Load failed: '+(d2.error||'unknown'));
+          });
+          el.appendChild(btn);
+          list.appendChild(el);
+        });
+      }
+
+      function drawHistoryOnCanvas(cvs, hist){
+        const ctx = cvs.getContext('2d'); ctx.clearRect(0,0,cvs.width,cvs.height);
+        if (!hist || hist.length===0) return;
+        const losses = hist.map(h=>h.loss||0);
+        const maxL = Math.max(...losses); const minL = Math.min(...losses);
+        const pad = 6; const w = cvs.width - pad*2; const h = cvs.height - pad*2;
+        ctx.strokeStyle='#0077cc'; ctx.lineWidth=2; ctx.beginPath();
+        hist.forEach((pt,i)=>{
+          const x = pad + (i/(hist.length-1||1))*w;
+          const y = pad + h - ((pt.loss - minL)/(Math.max(1e-8, maxL-minL)))*h;
+          if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }); ctx.stroke();
+      }
+
+      loadModels();
+    </script>
+  </body>
+  </html>

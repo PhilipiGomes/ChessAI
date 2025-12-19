@@ -1,12 +1,13 @@
 import argparse
 import os
-from typing import List, Optional, Tuple
 import random
+from typing import List, Optional, Tuple
+
+import chess
 import numpy as np
 import pandas as pd
-import chess
-from chessAI import board_to_feature_vector, SimpleMLP, INPUT_SIZE, MATE_SCORE
 
+from chessAI import INPUT_SIZE, MATE_SCORE, SimpleMLP, board_to_feature_vector
 
 # --- helpers para ler CSV com avaliações ---
 

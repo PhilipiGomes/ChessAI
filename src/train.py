@@ -1,5 +1,5 @@
-# trunk-ignore-all(git-diff-check/error)
 import argparse
+import json
 import os
 import random
 from typing import List, Optional, Tuple
@@ -7,7 +7,6 @@ from typing import List, Optional, Tuple
 import chess
 import numpy as np
 import pandas as pd
-import json
 
 from .chessAI import INPUT_SIZE, MATE_SCORE, SimpleMLP, board_to_feature_vector
 
@@ -210,7 +209,6 @@ def evolve_architectures(
 ) -> List[int] | None:
     from tqdm import tqdm
 
-    # trunk-ignore(bandit/B311)
     rng = random.Random(seed)
     # initial population
     population = [
@@ -308,7 +306,7 @@ def plot(losses: dict, filename: str):
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True)
-    parser.add_argument("--model-out", default=os.path.join('src', 'model'))
+    parser.add_argument("--model-out", default=os.path.join("src", "model"))
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -340,7 +338,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # move the current model to the folder 'src/prev_model', if there's a model saved in model-out
-    prev_dir = os.path.join('src', 'prev_model')
+    prev_dir = os.path.join("src", "prev_model")
     if os.path.exists(args.model_out) and len(os.listdir(args.model_out)) > 0:
         if not os.path.exists(prev_dir):
             os.makedirs(prev_dir)

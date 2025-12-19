@@ -1,4 +1,3 @@
-# trunk-ignore-all(git-diff-check/error)
 import argparse
 import os
 import random
@@ -19,23 +18,25 @@ if __name__ == "__main__":
     args = parser.parse_args(None)
     moves = []
     board = chess.Board()
-    if len(os.listdir(os.path.join('src','model'))) == 0 and len(os.listdir(os.path.join('src','prev_model'))) == 0:
+    if (
+        len(os.listdir(os.path.join("src", "model"))) == 0
+        and len(os.listdir(os.path.join("src", "prev_model"))) == 0
+    ):
         raise ValueError("No models found. Please train a model first.")
     ai1 = ChessAI(depth=args.depth_ai_1, sequence=moves)
     (
-        ai1.load_model(os.path.join('src','model'))
-        if len(os.listdir(os.path.join('src','model'))) > 0
-        else ai1.load_model(os.path.join('src','prev_model'))
+        ai1.load_model(os.path.join("src", "model"))
+        if len(os.listdir(os.path.join("src", "model"))) > 0
+        else ai1.load_model(os.path.join("src", "prev_model"))
     )
     ai2 = ChessAI(depth=args.depth_ai_2, sequence=moves)
     (
-        ai2.load_model(os.path.join('src','prev_model'))
-        if len(os.listdir(os.path.join('src','prev_model'))) > 0
-        else ai2.load_model(os.path.join('src','model'))
+        ai2.load_model(os.path.join("src", "prev_model"))
+        if len(os.listdir(os.path.join("src", "prev_model"))) > 0
+        else ai2.load_model(os.path.join("src", "model"))
     )
     # exemplo: avaliar posição inicial; como é branco a mover, último elemento será +1.0
     print(board)
-    # trunk-ignore(bandit/B311)
     ai_white = random.choice([ai1, ai2])
     ai_black = ai2 if ai_white == ai1 else ai1
     ai_white_str = "AI 1" if ai_white == ai1 else "AI 2"
@@ -46,17 +47,15 @@ if __name__ == "__main__":
         else:
             move = ai_black.choose_move(board)
         if move:
-                move_san = board.san(move)
-                # trunk-ignore(bandit/B605)
-                # trunk-ignore(bandit/B607)
-                os.system("cls")
-                print(
+            move_san = board.san(move)
+            os.system("cls")
+            print(
                 f"Brancas: {ai_white_str}, depth: {ai_white.depth} | Pretas: {ai_black_str}, depth: {ai_black.depth}"
-                )
-                print("Escolhido:", move_san)
-                moves.append(move_san)
-                board.push(move)
-                print(board)
+            )
+            print("Escolhido:", move_san)
+            moves.append(move_san)
+            board.push(move)
+            print(board)
         else:
             print("AI não encontrou um movimento válido.")
             break

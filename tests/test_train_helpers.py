@@ -1,9 +1,8 @@
-import os
-from src.train import load_positions_from_csv, build_dataset
+from src.train import build_dataset, load_positions_from_csv
 
 
 def test_load_positions_small():
-    path = 'src/data/random_evals.csv'
+    path = "src/data/random_evals.csv"
     positions = load_positions_from_csv(path, max_rows=5)
     assert len(positions) == 5
     X, y = build_dataset(positions)

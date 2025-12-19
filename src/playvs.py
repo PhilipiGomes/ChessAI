@@ -1,4 +1,3 @@
-# trunk-ignore-all(git-diff-check/error)
 import argparse
 import os
 import random
@@ -12,15 +11,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--depth", type=int, default=2, help="depth of the Engine")
     parser.add_argument(
-        "--dir-model", default=os.path.join('src','model'), help="Directory of the model of the AI"
+        "--dir-model",
+        default=os.path.join("src", "model"),
+        help="Directory of the model of the AI",
     )
     args = parser.parse_args(None)
     moves = []
     board = chess.Board()
     ai = ChessAI(depth=args.depth, sequence=moves)
-    ai.load_model(os.path.join('src','prev_model'))
+    ai.load_model(os.path.join("src", "prev_model"))
     players = ["AI", "Human"]
-    # trunk-ignore(bandit/B311)
     white = random.choice(players)
     black = "AI" if white == "Human" else "Human"
 
@@ -32,8 +32,6 @@ if __name__ == "__main__":
             move = ai.choose_move(board)
             if move:
                 move_san = board.san(move)
-                # trunk-ignore(bandit/B605)
-                # trunk-ignore(bandit/B607)
                 os.system("cls")
                 print(f"Brancas: {white} | Pretas: {black}")
                 if white == "AI":
@@ -55,8 +53,6 @@ if __name__ == "__main__":
                     break
                 except Exception:
                     print("Movimento inválido, tente de novo.")
-            # trunk-ignore(bandit/B605)
-            # trunk-ignore(bandit/B607)
             os.system("cls")
             print("Escolhido:", move)
             try:

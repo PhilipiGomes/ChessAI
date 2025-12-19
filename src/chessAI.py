@@ -1,4 +1,3 @@
-# trunk-ignore-all(git-diff-check/error)
 import json
 import os
 import random
@@ -34,7 +33,6 @@ _zobrist_ep = {}
 
 def init_zobrist(seed: Optional[int] = 0):
     global _zobrist_piece, _zobrist_side, _zobrist_castling, _zobrist_ep
-    # trunk-ignore(bandit/B311)
     rng = random.Random(seed)
     _zobrist_piece = {}
     for pidx in range(6):
@@ -409,18 +407,19 @@ class ChessAI:
     def choose_move(self, board: chess.Board) -> Optional[chess.Move]:
         # Opening logic.
         # Opening logic: choose an opening for this AI instance once and reuse it
-        if board.fen() == chess.STARTING_FEN or (self.sequence and len(self.sequence) == 0):
+        if board.fen() == chess.STARTING_FEN or (
+            self.sequence and len(self.sequence) == 0
+        ):
             # if we haven't selected an opening yet, pick one and store it
-            if not hasattr(self, '_opening_moves') or self._opening_moves is None:
+            if not hasattr(self, "_opening_moves") or self._opening_moves is None:
                 filtered = self.filter_openings(chess_openings, self.sequence)
                 if filtered:
                     # choose one opening and keep it for this AI instance
-                    # trunk-ignore(bandit/B311)
                     opening = random.choice(list(filtered.items()))
                     self._opening_moves = opening[1]
                     # index where to pick next move is len(self.sequence)
             # if we have an opening and there is a next move available, play it
-            if hasattr(self, '_opening_moves') and self._opening_moves is not None:
+            if hasattr(self, "_opening_moves") and self._opening_moves is not None:
                 idx = len(self.sequence) if self.sequence is not None else 0
                 if idx < len(self._opening_moves):
                     san_move = self._opening_moves[idx]

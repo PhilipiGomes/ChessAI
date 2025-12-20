@@ -5,10 +5,10 @@ from typing import Dict, List, Optional
 
 import chess
 import numpy as np
+from chess_features import chess_features
 from tqdm import tqdm
 
 from openings import chess_openings
-from chess_features import chess_features
 
 # --- Config ---
 PIECE_TYPES = [
@@ -85,7 +85,9 @@ def board_zobrist_key(board: chess.Board) -> int:
 def board_to_feature_vector(board: chess.Board) -> np.ndarray:
     """Converts a chess.Board to a feature vector (np.ndarray)"""
     board_3d = chess_features.to_valued_bitboard(board)  # shape (12, 8, 8)
-    board_2d = board_3d.flatten().astype(np.float32)  # shape (768,) ou (769,) com padding
+    board_2d = board_3d.flatten().astype(
+        np.float32
+    )  # shape (768,) ou (769,) com padding
     board_2d = np.append(board_2d, 1.0 if board.turn == chess.WHITE else 0.0)  # turno
     return board_2d
 

@@ -60,7 +60,7 @@ if __name__ == "__main__":
             print("AI não encontrou um movimento válido.")
             break
     print("Jogo terminado:", board.result())
-    with open("jogo.pgn", "w") as f:
+    with open(".\src\jogo.pgn", "w") as f:
         f.write('[Event "AI vs AI"]')
         f.write("\n")
         f.write(f'[White "{ai_white_str}, depth: {ai_white.depth}"]\n')
@@ -78,4 +78,4 @@ if __name__ == "__main__":
 
         f.write(board.result())
         f.write("\n")
-    print("Movimentos salvos em jogo.txt")
+    print("Movimentos salvos em jogo.png")

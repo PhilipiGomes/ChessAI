@@ -8,7 +8,7 @@ import chess
 import numpy as np
 import pandas as pd
 
-from .chessAI import INPUT_SIZE, MATE_SCORE, SimpleMLP, board_to_feature_vector
+from chessAI import INPUT_SIZE, MATE_SCORE, SimpleMLP, board_to_feature_vector
 
 # --- helpers para ler CSV com avaliações ---
 
@@ -51,14 +51,14 @@ def load_positions_from_csv(
 
     eval_col = df.columns[1]
 
-    # Detecta rapidamente linhas cujo texto de avaliação indica mate (# ou 'mate')
+    # Detecta rapidamente linhas cujo texto de avaliação indica mate (#)
     eval_text = df[eval_col].astype(str).fillna("")
-    is_mate_mask = eval_text.str.contains(r"#|mate", case=False, regex=True)
+    is_mate_mask = eval_text.str.contains(r"#", case=False, regex=True)
 
     # candidatos sem mate
     candidates = df.loc[~is_mate_mask]
 
-    if max_rows is None:
+    if max_rows is None or max_rows > len(candidates):
         # queremos todas as posições não-mate — iterar e validar fen
         df_iter = candidates.itertuples(index=False, name=None)
     else:
@@ -178,7 +178,7 @@ def evaluate_architecture(
     X_train, y_train = X[train_idx], y[train_idx]
     X_val, y_val = X[val_idx], y[val_idx]
 
-    model = SimpleMLP(input_size=INPUT_SIZE, hidden_sizes=arch, seed=seed)
+    model = SimpleMLP(hidden_sizes=arch, seed=seed)
     model.train_sgd(
         X_train,
         y_train,
@@ -310,9 +310,9 @@ def main(argv=None):
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--hidden", type=int, nargs="+", default=[128, 64])
+    parser.add_argument("--hidden", type=int, nargs="*", default=[128, 64])
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument("--positions", type=int, default=None)
     # evolution args
     parser.add_argument(
         "--evolve", action="store_true", help="ativa busca evolutiva pela arquitetura"
@@ -372,7 +372,7 @@ def main(argv=None):
         print(f"Modelo existente em {args.model_out}/ foi movido para {prev_dir}/")
 
     print("Carregando posições do CSV...")
-    positions = load_positions_from_csv(args.data, max_rows=args.max_rows)
+    positions = load_positions_from_csv(args.data, max_rows=args.positions)
     if len(positions) == 0:
         print("Nenhuma posição válida encontrada. Saindo.")
         return
@@ -419,7 +419,7 @@ def main(argv=None):
     save_model_np(model, args.model_out)
     if args.plot_loss:
         if losses is not None:
-            plot(losses, "training_loss.png")
+            plot(losses, ".\\src\\training_loss.png")
 
     print("Treino concluído.")
 

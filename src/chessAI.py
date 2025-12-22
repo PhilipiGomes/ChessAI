@@ -19,9 +19,8 @@ PIECE_TYPES = [
     chess.QUEEN,
     chess.KING,
 ]
-NUM_CHANNELS = 12
-SQUARES = 64
-INPUT_SIZE = NUM_CHANNELS * SQUARES + 1
+
+INPUT_SIZE = 769  # 768 para peças + 1 para vez de jogar
 MATE_SCORE = 100000.0
 MASK64 = (1 << 64) - 1
 
@@ -51,7 +50,7 @@ def init_zobrist(seed: Optional[int] = 0):
 
 
 # initialize default zobrist
-init_zobrist(seed=0)
+init_zobrist()
 
 
 def board_zobrist_key(board: chess.Board) -> int:
@@ -85,10 +84,10 @@ def board_zobrist_key(board: chess.Board) -> int:
 def board_to_feature_vector(board: chess.Board) -> np.ndarray:
     """Converts a chess.Board to a feature vector (np.ndarray)"""
     board_3d = chess_features.to_valued_bitboard(board)  # shape (12, 8, 8)
-    board_2d = board_3d.flatten().astype(
-        np.float32
-    )  # shape (768,) ou (769,) com padding
-    board_2d = np.append(board_2d, 1.0 if board.turn == chess.WHITE else 0.0)  # turno
+    board_2d = chess_features.bitboard_to_bitvector(board_3d)  # shape (768,)
+    board_2d = np.append(
+        board_2d, 1.0 if board.turn == chess.WHITE else 0.0
+    )  # shape (769,)
     return board_2d
 
 
@@ -228,6 +227,8 @@ class SimpleMLP:
                     progress_callback(epoch + 1, float(epoch_loss))
                 except Exception:
                     pass
+            if epoch % 100 == 0:
+                self.save(".\\src\\temp_model")
         return losses
 
     # --- salvar / carregar pesos (compatível com shapes diferentes) ---
@@ -319,10 +320,14 @@ class ChessAI:
                     beta = entry_value
                 if alpha >= beta:
                     return entry_value
-
+        ai_depth = self.depth
         if board.is_game_over():
             if board.is_checkmate():
-                return MATE_SCORE if board.turn == chess.BLACK else -MATE_SCORE
+                return (
+                    MATE_SCORE - (ai_depth - depth)
+                    if board.turn == chess.BLACK
+                    else (ai_depth - depth) - MATE_SCORE
+                )
             else:
                 return 0.0
 

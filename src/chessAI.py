@@ -140,31 +140,48 @@ class SimpleMLP:
         y: np.ndarray,
         epochs=10,
         lr=1e-3,
+        data_split=0.8,
         batch_size=32,
         verbose=False,
         plot=True,
         progress_callback=None,
+        l2_reg=1e-4,
+        lr_decay=0.999,
     ):
         """
-        Vetorizado por mini-batch. Loss: 0.5 * mean((pred - y)^2).
+        Vetorizado por mini-batch. Loss: 0.5 * mean((pred - y)^2) + L2 regularization.
         Mostra progresso por época usando tqdm quando verbose=True.
+        L2 regularization helps improve generalization to test set.
         """
         N = X.shape[0]
         if N == 0:
             return
         X = X.astype(np.float32)
         y = y.astype(np.float32).reshape(-1)
-        losses = {}
+
+        # Split data
+        split_idx = int(N * data_split)
+        X_train = X[:split_idx]
+        y_train = y[:split_idx]
+        X_test = X[split_idx:] if data_split < 1.0 else None
+        y_test = y[split_idx:] if data_split < 1.0 else None
+
+        losses = {
+            "train_loss": {},
+            "test_loss": {},
+            "train_accuracy": {},
+            "test_accuracy": {},
+        }
 
         # barra de progresso nas épocas
         pbar = tqdm(range(epochs), desc="Treinando", unit="ep", disable=not verbose)
         for epoch in pbar:
-            perm = np.random.permutation(N)
+            perm = np.random.permutation(len(X_train))
             epoch_loss_sum = 0.0
-            for bstart in range(0, N, batch_size):
+            for bstart in range(0, len(X_train), batch_size):
                 batch_idx = perm[bstart : bstart + batch_size]
-                Xb = X[batch_idx]  # (B, in)
-                yb = y[batch_idx]  # (B,)
+                Xb = X_train[batch_idx]  # (B, in)
+                yb = y_train[batch_idx]  # (B,)
                 B = Xb.shape[0]
 
                 # Forward (store activations)
@@ -210,17 +227,47 @@ class SimpleMLP:
                     db[j] = np.sum(delta_l, axis=0).astype(np.float32)  # (out_l,)
                     delta_prev = delta_l
 
-                # update params
-                for i in range(len(self.W)):
-                    self.W[i] -= lr * dW[i]
-                    self.b[i] -= lr * db[i]
+                # Gradient clipping to prevent overflow
+                max_grad_norm = 1.0
+                for i in range(len(dW)):
+                    grad_norm = np.linalg.norm(dW[i])
+                    if grad_norm > max_grad_norm:
+                        dW[i] *= max_grad_norm / grad_norm
+                    grad_norm_b = np.linalg.norm(db[i])
+                    if grad_norm_b > max_grad_norm:
+                        db[i] *= max_grad_norm / grad_norm_b
 
-            epoch_loss = epoch_loss_sum / float(N)
+                # Add L2 regularization gradient to weights
+                for i in range(len(dW)):
+                    dW[i] += l2_reg * self.W[i]
+
+                # update params with learning rate
+                current_lr = lr * (lr_decay**epoch)
+                for i in range(len(self.W)):
+                    self.W[i] -= current_lr * dW[i]
+                    self.b[i] -= current_lr * db[i]
+
+            epoch_loss = epoch_loss_sum / float(len(X_train))
+
+            # Compute full train metrics (accuracy only, loss already computed)
+            preds_train = self.predict_batch(X_train)
+            train_accuracy = np.mean(np.abs(preds_train - y_train) <= 0.5) * 100
+            losses["train_loss"][epoch] = epoch_loss
+            losses["train_accuracy"][epoch] = train_accuracy
+
+            if X_test is not None:
+                preds_test = self.predict_batch(X_test)
+                test_loss = 0.5 * np.mean((preds_test - y_test) ** 2)
+                test_accuracy = np.mean(np.abs(preds_test - y_test) <= 0.5) * 100
+                losses["test_loss"][epoch] = test_loss
+                losses["test_accuracy"][epoch] = test_accuracy
+
             if verbose:
                 # atualiza postfix com loss
-                pbar.set_postfix(loss=f"{epoch_loss:.6f}")
-            if plot:
-                losses[epoch] = epoch_loss
+                postfix = f"train_loss={epoch_loss:.6f}"
+                if X_test is not None:
+                    postfix += f", test_loss={test_loss:.6f}"
+                pbar.set_postfix_str(postfix)
             # call progress callback with (epoch_number, epoch_loss)
             if progress_callback is not None:
                 try:
@@ -328,8 +375,7 @@ class ChessAI:
                     if board.turn == chess.BLACK
                     else (ai_depth - depth) - MATE_SCORE
                 )
-            else:
-                return 0.0
+            return 0.0
 
         if depth == 0:
             return self.evaluate_board(board)

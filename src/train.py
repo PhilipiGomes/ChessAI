@@ -49,14 +49,7 @@ def load_positions_from_csv(
     if df.shape[1] < 2:
         raise ValueError("CSV deve ter pelo menos 2 colunas (fen, eval).")
 
-    eval_col = df.columns[1]
-
-    # Detecta rapidamente linhas cujo texto de avaliação indica mate (#)
-    eval_text = df[eval_col].astype(str).fillna("")
-    is_mate_mask = eval_text.str.contains(r"#", case=False, regex=True)
-
-    # candidatos sem mate
-    candidates = df.loc[~is_mate_mask]
+    candidates = df
 
     if max_rows is None or max_rows > len(candidates):
         # queremos todas as posições não-mate — iterar e validar fen
@@ -186,6 +179,8 @@ def evaluate_architecture(
         lr=lr,
         batch_size=batch_size,
         verbose=False,
+        l2_reg=1e-4,
+        lr_decay=0.999,
     )
     preds = model.predict_batch(X_val)
     mse = float(np.mean((preds - y_val) ** 2) * 0.5)
@@ -289,16 +284,51 @@ def load_model_np(model: SimpleMLP, prefix: str):
     model.b = [bb.astype(np.float32) for bb in list(b)]
 
 
-def plot(losses: dict, filename: str):
+def plot(losses: dict, filename_loss: str, filename_accuracy: str):
     import matplotlib.pyplot as plt
 
+    # Loss plot
     plt.figure()
-    plt.plot(list(losses.keys()), list(losses.values()))
+    if "train_loss" in losses:
+        plt.plot(
+            list(losses["train_loss"].keys()),
+            list(losses["train_loss"].values()),
+            label="Train Loss",
+        )
+    if "test_loss" in losses:
+        plt.plot(
+            list(losses["test_loss"].keys()),
+            list(losses["test_loss"].values()),
+            label="Test Loss",
+        )
     plt.title("Training Loss over Epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
+    plt.legend()
     plt.grid(True)
-    plt.savefig(filename)
+    plt.savefig(filename_loss)
+    plt.close()
+
+    # Accuracy plot
+    plt.figure()
+    if "train_accuracy" in losses:
+        plt.plot(
+            list(losses["train_accuracy"].keys()),
+            list(losses["train_accuracy"].values()),
+            label="Train Accuracy",
+        )
+    if "test_accuracy" in losses:
+        plt.plot(
+            list(losses["test_accuracy"].keys()),
+            list(losses["test_accuracy"].values()),
+            label="Test Accuracy",
+        )
+    plt.title("Accuracy over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy (%)")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(filename_accuracy)
     plt.close()
 
 
@@ -310,9 +340,16 @@ def main(argv=None):
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--data-split", type=float, default=0.8)
     parser.add_argument("--hidden", type=int, nargs="*", default=[128, 64])
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--positions", type=int, default=None)
+    parser.add_argument(
+        "--l2-reg", type=float, default=1e-4, help="L2 regularization coefficient"
+    )
+    parser.add_argument(
+        "--lr-decay", type=float, default=0.999, help="Learning rate decay per epoch"
+    )
     # evolution args
     parser.add_argument(
         "--evolve", action="store_true", help="ativa busca evolutiva pela arquitetura"
@@ -411,15 +448,18 @@ def main(argv=None):
         y,
         epochs=args.epochs,
         lr=args.lr,
+        data_split=args.data_split,
         batch_size=args.batch_size,
         verbose=True,
         plot=args.plot_loss,
+        l2_reg=args.l2_reg,
+        lr_decay=args.lr_decay,
     )
 
     save_model_np(model, args.model_out)
     if args.plot_loss:
         if losses is not None:
-            plot(losses, ".\\src\\training_loss.png")
+            plot(losses, ".\\src\\training_loss.png", ".\\src\\training_accuracy.png")
 
     print("Treino concluído.")
 
